@@ -1,0 +1,10 @@
+spring:
+  application:
+    name: X-AI-FOR-PART-TIME
+server:
+  port: 7890
+  datasource:
+    url: jdbc:h2:mem:db
+    driverClassName: org.h2.Driver
+    username: sa
+    password:
