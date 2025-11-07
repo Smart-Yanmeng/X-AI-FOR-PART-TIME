@@ -1,10 +1,10 @@
 package com.zephyra.ai.service.impl;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zephyra.ai.domain.entity.ColumnInfoEntity;
 import com.zephyra.ai.domain.entity.TableInfoEntity;
+import com.zephyra.ai.exception.SystemBizException;
 import com.zephyra.ai.repository.ColumnInfoRepository;
 import com.zephyra.ai.repository.TableInfoRepository;
 import com.zephyra.ai.service.IAliAiService;
@@ -59,6 +59,35 @@ public class AliAiServiceImpl implements IAliAiService {
         }
 
         return null;
+    }
+
+    @Override
+    public String updateTableInfoByAi(String demand, List<Long> tableIdList) {
+        List<TableInfoEntity> tableInfoEntityList = tableInfoRepository.findAllByIdIn(tableIdList);
+
+        try {
+            // 使用 ObjectMapper 序列化成 JSON 字符串
+            String tableJson = new ObjectMapper()
+                    .writerWithDefaultPrettyPrinter()
+                    .writeValueAsString(tableInfoEntityList);
+
+            demand += tableJson;
+
+            GenerationResult result = callWithMessage(demand);
+            String content = result.getOutput().getChoices().getFirst().getMessage().getContent();
+            System.out.println(content);
+
+            List<Map<String, Object>> tables = MAPPER.readValue(content, List.class);
+            tableInfoRepository.deleteAllByIdIn(tableIdList);
+
+            saveToH2(tables);
+
+            System.out.println("tables -> " + tables);
+
+            return content;
+        } catch (JsonProcessingException | NoApiKeyException | InputRequiredException e) {
+            throw new SystemBizException("序列化表结构失败");
+        }
     }
 
     public static GenerationResult callWithMessage(String demand) throws ApiException, NoApiKeyException, InputRequiredException {
@@ -131,7 +160,7 @@ public class AliAiServiceImpl implements IAliAiService {
             List<Map<String, Object>> columns = (List<Map<String, Object>>) tableMap.get("columns");
             for (Map<String, Object> col : columns) {
                 ColumnInfoEntity column = new ColumnInfoEntity();
-                column.setTableId(tableId);
+                column.setTable(TableInfoEntity.builder().id(tableId).build());
                 column.setName((String) col.get("name"));
                 column.setLogicalType((String) col.get("logicalType"));
                 column.setSqlType((String) col.get("sqlType"));
