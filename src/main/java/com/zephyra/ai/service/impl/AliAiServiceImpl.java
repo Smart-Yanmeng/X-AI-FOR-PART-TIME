@@ -3,7 +3,12 @@ package com.zephyra.ai.service.impl;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.zephyra.ai.domain.entity.ColumnInfoEntity;
+import com.zephyra.ai.domain.entity.TableInfoEntity;
+import com.zephyra.ai.repository.ColumnInfoRepository;
+import com.zephyra.ai.repository.TableInfoRepository;
 import com.zephyra.ai.service.IAliAiService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.Arrays;
@@ -24,9 +29,14 @@ import com.alibaba.dashscope.exception.NoApiKeyException;
  * @author York
  */
 @Service
+@RequiredArgsConstructor
 public class AliAiServiceImpl implements IAliAiService {
 
     private final ObjectMapper MAPPER = new ObjectMapper();
+
+    private final TableInfoRepository tableInfoRepository;
+
+    private final ColumnInfoRepository columnInfoRepository;
 
     @Override
     public String createDatabaseJson(String demand) {
@@ -36,6 +46,7 @@ public class AliAiServiceImpl implements IAliAiService {
             System.out.println(content);
 
             List<Map<String, Object>> tables = MAPPER.readValue(content, List.class);
+            saveToH2(tables);
 
             System.out.println("tables -> " + tables);
 
@@ -103,5 +114,39 @@ public class AliAiServiceImpl implements IAliAiService {
                 .resultFormat(GenerationParam.ResultFormat.MESSAGE)
                 .build();
         return gen.call(param);
+    }
+
+    public void saveToH2(List<Map<String, Object>> tables) {
+        for (Map<String, Object> tableMap : tables) {
+            // 保存 table_info
+            TableInfoEntity table = new TableInfoEntity();
+            table.setTableName((String) tableMap.get("tableName"));
+            table.setComment((String) tableMap.get("comment"));
+            table.setPrimaryKey((String) tableMap.get("primaryKey"));
+            tableInfoRepository.save(table);
+
+            Long tableId = table.getId();
+
+            // 保存 column_info
+            List<Map<String, Object>> columns = (List<Map<String, Object>>) tableMap.get("columns");
+            for (Map<String, Object> col : columns) {
+                ColumnInfoEntity column = new ColumnInfoEntity();
+                column.setTableId(tableId);
+                column.setName((String) col.get("name"));
+                column.setLogicalType((String) col.get("logicalType"));
+                column.setSqlType((String) col.get("sqlType"));
+                column.setPrimaryKey((Boolean) col.get("primaryKey"));
+                column.setNullable((Boolean) col.get("nullable"));
+                column.setDefaultValue((String) col.get("defaultValue"));
+
+                Map<String, String> fk = (Map<String, String>) col.get("foreignKey");
+                if (fk != null) {
+                    column.setForeignTable(fk.get("referenceTable"));
+                    column.setForeignColumn(fk.get("referenceColumn"));
+                }
+
+                columnInfoRepository.save(column);
+            }
+        }
     }
 }
