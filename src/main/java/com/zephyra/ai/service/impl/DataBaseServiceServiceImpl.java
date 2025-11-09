@@ -6,6 +6,7 @@ import com.zephyra.ai.exception.SystemBizException;
 import com.zephyra.ai.repository.ColumnInfoRepository;
 import com.zephyra.ai.repository.TableInfoRepository;
 import com.zephyra.ai.service.IDataBaseService;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -33,6 +34,7 @@ public class DataBaseServiceServiceImpl implements IDataBaseService {
     }
 
     @Override
+    @Transactional
     public TableInfoEntity createTable(TableInfoEntity tableInfoEntity) {
         if (tableInfoEntity.getColumns() != null) {
             tableInfoEntity.getColumns().forEach(column -> column.setTable(tableInfoEntity));
@@ -42,6 +44,7 @@ public class DataBaseServiceServiceImpl implements IDataBaseService {
     }
 
     @Override
+    @Transactional
     public TableInfoEntity updateTable(TableInfoEntity tableInfoEntity) {
         return tableInfoRepository.findById(tableInfoEntity.getId()).map(table -> {
             table.setTableName(tableInfoEntity.getTableName());
@@ -53,6 +56,7 @@ public class DataBaseServiceServiceImpl implements IDataBaseService {
     }
 
     @Override
+    @Transactional
     public void deleteTable(Long id) {
         tableInfoRepository.deleteById(id);
     }
@@ -63,6 +67,7 @@ public class DataBaseServiceServiceImpl implements IDataBaseService {
     }
 
     @Override
+    @Transactional
     public ColumnInfoEntity createColumn(Long tableId, ColumnInfoEntity columnInfoEntity) {
         TableInfoEntity table = tableInfoRepository.findById(tableId)
                 .orElseThrow(() -> new SystemBizException("Table not found"));
@@ -72,6 +77,7 @@ public class DataBaseServiceServiceImpl implements IDataBaseService {
     }
 
     @Override
+    @Transactional
     public ColumnInfoEntity updateColumn(ColumnInfoEntity columnInfoEntity) {
         return columnInfoRepository.findById(columnInfoEntity.getId()).map(column -> {
             column.setName(columnInfoEntity.getName());
@@ -88,6 +94,7 @@ public class DataBaseServiceServiceImpl implements IDataBaseService {
     }
 
     @Override
+    @Transactional
     public void deleteColumn(Long id) {
         columnInfoRepository.deleteById(id);
     }

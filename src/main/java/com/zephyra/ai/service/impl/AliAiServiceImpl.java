@@ -8,6 +8,7 @@ import com.zephyra.ai.exception.SystemBizException;
 import com.zephyra.ai.repository.ColumnInfoRepository;
 import com.zephyra.ai.repository.TableInfoRepository;
 import com.zephyra.ai.service.IAliAiService;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -39,6 +40,7 @@ public class AliAiServiceImpl implements IAliAiService {
     private final ColumnInfoRepository columnInfoRepository;
 
     @Override
+    @Transactional
     public String createDatabaseJson(String demand) {
         try {
             GenerationResult result = callWithMessage(demand);
@@ -62,6 +64,7 @@ public class AliAiServiceImpl implements IAliAiService {
     }
 
     @Override
+    @Transactional
     public String updateTableInfoByAi(String demand, List<Long> tableIdList) {
         List<TableInfoEntity> tableInfoEntityList = tableInfoRepository.findAllByIdIn(tableIdList);
 
